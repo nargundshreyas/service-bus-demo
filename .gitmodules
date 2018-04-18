@@ -1,0 +1,3 @@
+[submodule "ServiceInfraModules"]
+	path = ServiceInfraModules
+	url = git@code.siemens.com:mindsphere-azure/infrastructure_az/templates/ServiceInfraModules.git

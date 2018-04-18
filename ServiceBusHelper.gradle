@@ -1,0 +1,71 @@
+buildscript {
+    dependencies {
+        classpath "com.siemens.isb:MindSpherePlugin:4.0.+"
+        classpath "gradle.plugin.com.github.sherter.google-java-format:google-java-format-gradle-plugin:0.6"
+    }
+}
+plugins {
+    id 'io.spring.dependency-management' version '0.6.1.RELEASE'
+    id 'maven-publish'
+    id 'org.springframework.boot' version '1.5.7.RELEASE'
+    id 'org.sonarqube' version '2.6'
+    id 'jacoco'
+}
+
+apply plugin: 'MindSphere'
+apply plugin: 'com.github.sherter.google-java-format'
+apply plugin: "jacoco"
+
+task applicationCodeCoverageReport(type:JacocoReport){
+    executionData bootRun
+    sourceSets sourceSets.main
+}
+
+sonarqube {
+    properties {
+        property "sonar.jacoco.reportPath", "${project.buildDir}/jacoco/test.exec"
+    }
+}
+
+jacoco{
+      toolVersion = "0.7.9"
+}
+
+jacocoTestReport{
+    reports{
+        xml.enabled true
+        csv.enabled true
+        html.enabled true
+        html.destination "$buildDir/reports/jacoco/html"
+    }
+}
+
+jacocoTestCoverageVerification {
+    executionData = files('build/jacoco/test.exec', 'build/jacoco/intTest.exec')
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.70
+            }
+        }
+    }
+}
+
+
+googleJavaFormat {
+    toolVersion = '1.3'
+    options style: 'AOSP'
+}
+
+version.base = '1.0.0'
+
+bootRepackage {
+	enabled = false
+}
+
+dependencies {
+	compile "org.springframework.boot:spring-boot-starter-actuator"
+	compile "com.microsoft.azure:azure-servicebus:1.0.0"
+	compile "org.projectlombok:lombok:1.16.10"
+	testCompile "org.springframework.boot:spring-boot-starter-test"
+}

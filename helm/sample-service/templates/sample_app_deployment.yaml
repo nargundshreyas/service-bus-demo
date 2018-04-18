@@ -1,0 +1,26 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.sampleApp.name}}
+  namespace: {{ .Values.sampleApp.namespace }}
+  labels:
+    app: {{ .Values.sampleApp.name}}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.sampleApp.name}}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Values.sampleApp.name}}
+        image: {{ .Values.sampleApp.image.repository }}:{{ .Values.sampleApp.image.tag }}
+        imagePullPolicy: {{ .Values.sampleApp.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.sampleApp.service.internalPort }}
+      imagePullSecrets:
+      - name: {{ .Values.sampleApp.image.secrets }}

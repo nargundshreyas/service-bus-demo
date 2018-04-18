@@ -1,0 +1,154 @@
+image: docker.siemens.com/mindsphere-azure/hub/mdsp-az-java:azure
+
+stages:
+  - build
+  - publish
+  - deploy
+  - destroy
+
+GradleBuild:
+  stage: build
+  script: bash ./gradlew build
+  tags:
+    - azure-build
+    
+.common: &common
+  before_script:
+   - git submodule sync --recursive
+   - git submodule update --init --recursive
+   - cp -prf ./ServiceInfraModules/* .
+  when: manual
+  tags:
+    - azure-build
+
+.build_common: &build_common
+  <<: *common
+  stage: build
+  script:
+    - sh gradlew --stacktrace build
+  when: manual
+  tags:
+    - azure-build
+  artifacts:
+    expire_in: 1h
+    paths:
+    - /build/libs
+
+.publish_common: &publish_common
+  <<: *common
+  stage: publish
+  script:  
+   - bash ./serviceinfrasetup.sh publish
+  when: manual
+  only:
+    - master
+  tags:
+    - azure-build    
+
+.deploy_common: &deploy_common
+  <<: *common
+  stage: deploy
+  script:
+    - echo 'Deploy stage'
+  
+.destroy_common: &destroy_common
+  <<: *common
+  stage: destroy
+  script:
+    - "chmod 777 serviceinfrasetup.sh; ./serviceinfrasetup.sh destroy"
+
+publish-artifacts-sanpshot:
+  stage: publish
+  tags:
+    - azure-build
+  script:
+  - export changesetid=$(git log -1 --format=%B | grep "^git-tfs-id" | sed 's/.*C\([0-9][0-9]*\).*/\1/')
+  - export buildnumber=${CI_PIPELINE_ID}
+  - sh gradlew publish -Pchangesetid=$changesetid -Pbuildnumber=$buildnumber
+  - export project_name=`sed -r 's/.*/\L&/'  <<< "${CI_PROJECT_NAME}"`
+  when: manual
+
+
+publish-artifacts-release:
+  stage: publish
+  tags:
+    - azure-build
+  only:
+  - tag
+  script:
+  - export changesetid=$(git log -1 --format=%B | grep "^git-tfs-id" | sed 's/.*C\([0-9][0-9]*\).*/\1/')
+  - export buildnumber=${CI_PIPELINE_ID}
+  - sh gradlew publish -Pchangesetid=$changesetid -Pbuildnumber=$buildnumber -P taskTimes -P release -D repo.publish=release_az
+  when: manual
+
+DEV-build:
+  <<: *build_common
+  variables:
+    Region: neur
+    Environment: dev
+
+DeV-publish:
+  <<: *publish_common
+  variables:
+    Region: neur
+    Environment: dev
+
+DEV-deploy:
+  <<: *deploy_common
+  variables:
+    Region: neur
+    Environment: dev
+        
+DEV-destroy:
+  <<: *destroy_common
+  variables:
+    Region: neur
+    Environment: dev
+
+QA-build:
+  <<: *build_common
+  variables:
+    Region: neur
+    Environment: qa
+    
+QA-publish:
+  <<: *publish_common
+  variables:
+    Region: neur
+    Environment: qa
+
+QA-deploy:
+  <<: *deploy_common
+  variables:
+    Region: neur
+    Environment: qa 
+    
+QA-destroy:
+  <<: *destroy_common
+  variables:
+    Region: neur
+    Environment: qa
+    
+PREV-build:
+  <<: *build_common
+  variables:
+    Region: neur
+    Environment: prev
+    
+PREV-publish:
+  <<: *publish_common
+  variables:
+    Region: neur
+    Environment: prev
+
+PREV-deploy:
+  <<: *deploy_common
+  variables:
+    Region: neur
+    Environment: prev 
+    
+PREV-destroy:
+  <<: *destroy_common
+  variables:
+    Region: neur
+    Environment: prev
